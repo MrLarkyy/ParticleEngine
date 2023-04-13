@@ -17,21 +17,57 @@ public class ParticlePart {
     }
 
     protected void spawn(Location location, Vector parentOrigin, Vector parentPivot, EulerAngle parentAngle) {
+
+        var translation = template.getTranslation().clone();
+
         var newLocation = location.clone();//.add(particlePartTemplate.getTranslation());
         var rotation = template.getRotation();
+        var origin = template.getOrigin().clone();
+
+
+        // Cube rotation
+        var vector = translation.clone().subtract(template.getOrigin());
+        vector.rotateAroundX(rotation.getX());
+        vector.rotateAroundY(-rotation.getY());
+        vector.rotateAroundZ(-rotation.getZ());
+
+        if (template.getName().equals("cube")) {
+            Bukkit.broadcastMessage("First: " + vector.getX() + " " + vector.getY() + " " + vector.getZ());
+            location.getWorld().spawnParticle(Particle.CRIT,newLocation.clone().add(parentPivot),1,0,0,0);
+        }
+
+        vector.add(origin.clone().subtract(parentOrigin));
+        if (template.getName().equals("cube")) {
+            Bukkit.broadcastMessage("Second: " + vector.getX() + " " + vector.getY() + " " + vector.getZ());
+        }
+
+        vector.rotateAroundX(parentAngle.getX());
+        vector.rotateAroundY(-parentAngle.getY());
+        vector.rotateAroundZ(-parentAngle.getZ());
+
+        vector.add(template.getOrigin().clone().subtract(parentOrigin).add(parentPivot));
+
+        //vector.add(parentPivot.clone().subtract(parentOrigin));
+
+        /*
         var vector = template.getTranslation().clone().subtract(template.getOrigin());
 
         vector.rotateAroundX(rotation.getX());
         vector.rotateAroundY(rotation.getY());
         vector.rotateAroundZ(rotation.getZ());
 
-        vector.add(parentOrigin.clone().subtract( template.getOrigin()));
+        //vector = parentOrigin.clone().subtract(vector);
+        vector.add(parentOrigin.clone().subtract(template.getOrigin()));
 
         vector.rotateAroundX(parentAngle.getX());
         vector.rotateAroundY(parentAngle.getY());
         vector.rotateAroundZ(parentAngle.getZ());
 
+
+        //vector = parentPivot.clone().subtract(vector);
+
         vector.add(parentPivot);
+         */
         /*
         var v = template.getTranslation().clone().subtract(parentPivot.clone().subtract(parentOrigin.clone()));
 
