@@ -4,18 +4,21 @@ import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
+import xyz.larkyy.animationlib.animationlib.animation.LoopMode;
+import xyz.larkyy.animationlib.animationlib.timeline.InterpolatedTimeline;
+import xyz.larkyy.animationlib.animationlib.timeline.InterpolationType;
 import xyz.larkyy.blockbenchparser.blockbenchparser.BlockBenchParser;
-import xyz.larkyy.blockbenchparser.blockbenchparser.blockbench.BBBone;
-import xyz.larkyy.blockbenchparser.blockbenchparser.blockbench.BBElement;
-import xyz.larkyy.blockbenchparser.blockbenchparser.blockbench.BBElementChildren;
-import xyz.larkyy.blockbenchparser.blockbenchparser.blockbench.BBModel;
+import xyz.larkyy.blockbenchparser.blockbenchparser.blockbench.*;
+import xyz.larkyy.particleengine.particleengine.animation.ParticleTimeline;
+import xyz.larkyy.particleengine.particleengine.animation.TemplateAnimation;
+import xyz.larkyy.particleengine.particleengine.animation.keyframe.PositionKeyFrame;
+import xyz.larkyy.particleengine.particleengine.animation.keyframe.RotationKeyFrame;
 import xyz.larkyy.particleengine.particleengine.particle.template.ParticleBoneTemplate;
 import xyz.larkyy.particleengine.particleengine.particle.template.ParticlePartTemplate;
 import xyz.larkyy.particleengine.particleengine.particle.template.ParticleTemplate;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class BlockBenchReader {
 
@@ -37,8 +40,94 @@ public class BlockBenchReader {
             var readbone = readBone(bone, bbmodel);
             parentBones.add(readbone);
         }
-        return new ParticleTemplate(bbmodel.getName(), parentBones);
+
+        Map<String, TemplateAnimation> animations = new HashMap<>();
+        for (BBAnimation animation : bbmodel.getAnimations()) {
+            var templateAnimation = readAnimation(animation,outliner);
+            if (templateAnimation != null) {
+                animations.put(templateAnimation.getName(),templateAnimation);
+            }
+        }
+
+        return new ParticleTemplate(bbmodel.getName(), parentBones,animations);
     }
+
+    private TemplateAnimation readAnimation(BBAnimation bbAnimation,BBBone[] outliner) {
+        String name = bbAnimation.getName();
+        double length = bbAnimation.getLength();
+        LoopMode loopMode = LoopMode.valueOf(bbAnimation.getLoop().toUpperCase());
+        Map<String, ParticleTimeline> timelines = new HashMap<>();
+        for (Map.Entry<UUID, BBAnimator> entry : bbAnimation.getAnimators().entrySet()) {
+            UUID uuid = entry.getKey();
+            BBAnimator bbAnimator = entry.getValue();
+            BBBone bone = findBone(uuid, outliner);
+            if (bone == null) {
+                continue;
+            }
+            var timeline = readTimeline(bbAnimator);
+            if (timeline != null) {
+                timelines.put(bone.getName(),timeline);
+            }
+        }
+        return new TemplateAnimation(name,length,loopMode,timelines);
+    }
+
+    private BBBone findBone(UUID uuid, BBBone[] outliner) {
+        for (var item : outliner) {
+            var bone = findBone(uuid,item);
+            if (bone != null) {
+                return bone;
+            }
+        }
+        return null;
+    }
+
+    private BBBone findBone(UUID uuid, BBBone bone) {
+        if (bone.getUuid().equals(uuid)) {
+            return bone;
+        }
+        for (var child : bone.getChildren()) {
+            if (child instanceof BBBone bbBone) {
+                var b = findBone(uuid,bbBone);
+                if (b != null) {
+                    return b;
+                }
+            }
+        }
+        return null;
+    }
+
+    private ParticleTimeline readTimeline(BBAnimator bbAnimator) {
+        InterpolatedTimeline<RotationKeyFrame> rotationTimeline = new InterpolatedTimeline<>();
+        InterpolatedTimeline<PositionKeyFrame> positionTimeline = new InterpolatedTimeline<>();
+        for (BBKeyframe keyframe : bbAnimator.getKeyframes()) {
+            var datapoints = keyframe.getData_points()[0];
+            Vector vector = new Vector(datapoints.getX(),datapoints.getY(),datapoints.getZ());
+            double time = keyframe.getTime();
+            String interpolation = keyframe.getInterpolation();
+
+            InterpolationType interpolationType;
+            switch (interpolation.toUpperCase()) {
+                case "CATMULLROM" -> interpolationType = InterpolationType.SMOOTH;
+                case "STEP" -> interpolationType = InterpolationType.STEP;
+                default -> interpolationType = InterpolationType.LINEAR;
+            }
+
+            if (keyframe.getChannel().equalsIgnoreCase("rotation")) {
+                var kf = new RotationKeyFrame(new Vector(Math.toRadians(vector.getX()),Math.toRadians(vector.getY()),Math.toRadians(vector.getZ())));
+                kf.setInterpolationType(interpolationType);
+                rotationTimeline.addFrame(time,kf);
+                Bukkit.broadcastMessage("Loaded rotation kf");
+            } else if (keyframe.getChannel().equalsIgnoreCase("position")) {
+                var kf = new PositionKeyFrame(new Vector(vector.getX()/16,vector.getY()/16,vector.getZ()/16));
+                kf.setInterpolationType(interpolationType);
+                positionTimeline.addFrame(time,kf);
+                Bukkit.broadcastMessage("Loaded position kf");
+            }
+        }
+        return new ParticleTimeline(positionTimeline,rotationTimeline);
+    }
+
 
     private ParticleBoneTemplate readBone(BBBone bone, BBModel bbModel) {
         var bbOrigin = bone.getOrigin();

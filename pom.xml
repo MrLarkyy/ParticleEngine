@@ -71,6 +71,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>xyz.larkyy.animationlib</groupId>
+            <artifactId>AnimationLib</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
             <groupId>xyz.larkyy.blockbenchparser</groupId>
             <artifactId>BlockBenchParser</artifactId>
             <version>1.0-SNAPSHOT</version>

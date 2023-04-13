@@ -11,7 +11,7 @@ public final class ParticleEngine extends JavaPlugin {
     public void onEnable() {
         instance = this;
         this.particleHandler = new ParticleHandler();
-        new ParticleTicker().runTaskTimer(this,1,5);
+        new ParticleTicker().runTaskTimer(this,1,1);
         particleHandler.loadTemplates();
         getServer().getPluginManager().registerEvents(new Listeners(),this);
     }

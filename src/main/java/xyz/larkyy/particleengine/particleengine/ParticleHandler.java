@@ -19,9 +19,10 @@ public class ParticleHandler {
     private final Map<String,ParticleTemplate> templates = new HashMap<>();
     private final BlockBenchReader reader = new BlockBenchReader();
 
-    public void spawn(ParticleTemplate template, Location location) {
+    public SpawnedParticle spawn(ParticleTemplate template, Location location) {
         var p = template.spawn(location);
         spawnedParticles.add(p);
+        return p;
     }
 
     public ParticleTemplate getTemplate(String name) {
