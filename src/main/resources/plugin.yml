@@ -1,0 +1,4 @@
+name: ParticleEngine
+version: '${project.version}'
+main: xyz.larkyy.particleengine.particleengine.ParticleEngine
+api-version: 1.19
